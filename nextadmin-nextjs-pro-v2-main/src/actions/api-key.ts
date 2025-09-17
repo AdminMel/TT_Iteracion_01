@@ -4,7 +4,7 @@ import { isAuthorized } from "@/libs/isAuthorized"; // o tu helper
 export async function getApiKeys() {
   const user = await isAuthorized();
   // 👇 Parche: forzamos any para evitar el error de tipos en build
-  // @ts-ignore
+  // @ts-ignore — prisma typing puede no incluir apiKey en este entorno de build
   const res = await (prisma as any).apiKey.findMany({
     where: { userId: user?.id as string },
   });
@@ -14,7 +14,7 @@ export async function getApiKeys() {
 export async function createApiKey(name?: string) {
   const user = await isAuthorized();
   const key = crypto.randomUUID();
-  // @ts-expect-error see note above
+  // @ts-ignore — ver nota arriba
   const created = await (prisma as any).apiKey.create({
     data: { userId: user?.id as string, key, name },
   });
@@ -22,7 +22,7 @@ export async function createApiKey(name?: string) {
 }
 
 export async function deleteApiKey(id: string) {
-  // @ts-expect-error see note above
+  // @ts-ignore — ver nota arriba
   await (prisma as any).apiKey.delete({ where: { id } });
   return { ok: true };
 }
