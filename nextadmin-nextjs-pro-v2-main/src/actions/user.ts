@@ -1,20 +1,17 @@
 "use server";
-import prisma from "@/libs/prismaDb";           // usa import default (como en otros archivos)
+import prisma from "@/libs/prismaDb";
 import { isAuthorized } from "@/libs/isAuthorized";
 
 export async function getUsers(filter?: string) {
-  const currentUser = await isAuthorized();
+  const currentUser = await isAuthorized(); // { id: string } (sin email en este entorno)
+  const currentId = currentUser?.id ?? null;
 
-  // Si hay filtro, buscamos usuarios que tengan al menos un rol que coincida.
-  // Ajusta 'name' o 'role' según tu modelo UserRole.
+  // Filtro por relación 'roles' (ajusta 'name' o 'role' según tu esquema)
   const where: any = filter
     ? {
         roles: {
           some: {
-            OR: [
-              { name: filter }, // si tu tabla de roles tiene 'name'
-              { role: filter }, // o si usa 'role' (enum/string)
-            ],
+            OR: [{ name: filter }, { role: filter }],
           },
         },
       }
@@ -22,12 +19,11 @@ export async function getUsers(filter?: string) {
 
   const res = await prisma.user.findMany({ where });
 
-  const filteredUsers = res.filter(
-    (user) =>
-      user.email &&
-      user.email !== (currentUser?.email ?? "") &&
-      !user.email.includes("demo-"),
-  );
+  // Compara por id y luego aplica el "no demo-" por email del usuario listado
+  const filteredUsers = res.filter((user) => {
+    const email = user.email ?? "";
+    return user.id !== currentId && !email.includes("demo-");
+  });
 
   return filteredUsers;
 }
