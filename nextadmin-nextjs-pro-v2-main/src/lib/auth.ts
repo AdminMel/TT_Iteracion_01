@@ -1,7 +1,5 @@
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-import NextAuth, { type NextAuthOptions } from "next-auth";
+// src/lib/auth.ts
+import type { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import prisma from "@/libs/prismaDb";
 import { gescoLogin } from "@/lib/gescoLogin";
@@ -24,7 +22,6 @@ const credentialsProvider = Credentials({
     if (!r.ok) return null;
 
     const u = r.user!;
-    // 'id' aquí NO es el id de BD; solo para el paso inicial de next-auth
     return {
       id: String(u.boleta || username),
       name: u.nombre ?? null,
@@ -41,16 +38,15 @@ export const authOptions: NextAuthOptions = {
   debug: isDev,
   logger: isDev
     ? {
-      error: (...m) => console.error("[NextAuth][error]", ...m),
-      warn:  (...m) => console.warn("[NextAuth][warn]", ...m),
-      debug: (...m) => console.log("[NextAuth][debug]", ...m),
-    }
+        error: (...m) => console.error("[NextAuth][error]", ...m),
+        warn:  (...m) => console.warn("[NextAuth][warn]", ...m),
+        debug: (...m) => console.log("[NextAuth][debug]", ...m),
+      }
     : undefined,
   session: { strategy: "jwt" },
   providers: [credentialsProvider],
   pages: { signIn: "/auth/signin" },
   callbacks: {
-    // 1) Crea/actualiza User y PerfilAlumno; guarda el cuid real en user.__dbId
     async signIn({ user }) {
       const boleta  = (user as any).boleta as string | undefined;
       const email   = (user as any).email ?? null;
@@ -58,19 +54,17 @@ export const authOptions: NextAuthOptions = {
       if (!boleta) return false;
 
       const safeEmail = email ?? `${boleta}@placeholder.local`;
-
-      // <-- añade esto para que el resto del pipeline ya use el mismo email
       (user as any).email = safeEmail;
 
       const upUser = await prisma.user.upsert({
-        where: { email: safeEmail },
+        where:  { email: safeEmail },
         update: { name: nombre ?? undefined, active: true },
         create: { email: safeEmail, name: nombre ?? boleta, active: true },
         select: { id: true },
       });
 
       await prisma.perfilAlumno.upsert({
-        where: { userId: upUser.id },
+        where:  { userId: upUser.id },
         update: { boleta },
         create: { boleta, userId: upUser.id },
       });
@@ -79,46 +73,36 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
 
-    // 2) Copia al JWT
     async jwt({ token, user }) {
       if (user) {
         const dbId = (user as any).__dbId as string | undefined;
         if (dbId) (token as any).userId = dbId;
 
         const safeEmail = (user as any).email ?? token.email;
-        token.email   = safeEmail;                         // <— clave
-        token.boleta  = (user as any).boleta ?? token.boleta;
-        token.nombre  = (user as any).nombre ?? token.nombre;
+        token.email   = safeEmail;
+        token.boleta  = (user as any).boleta  ?? token.boleta;
+        token.nombre  = (user as any).nombre  ?? token.nombre;
         token.carrera = (user as any).carrera ?? token.carrera;
         (token as any).roles = ["ALUMNO"];
       }
       return token;
     },
 
-    // 3) Copia del JWT a la Session
     async session({ session, token }) {
       (session as any).userId = (token as any).userId as string | undefined;
-
-      // Construye el objeto permitido y luego añade extras como 'any' (evita TS2353)
       session.user = {
         ...(session.user ?? {}),
-        id: (token as any).userId as string | undefined,   // si tu augment lo permite
+        id:    (token as any).userId as string | undefined,
         roles: (token as any).roles ?? ["ALUMNO"],
-        // Campos estándar
-        name: session.user?.name ?? (token as any).nombre ?? null,
+        name:  session.user?.name  ?? (token as any).nombre ?? null,
         email: session.user?.email ?? (token.email as string | undefined) ?? null,
         image: session.user?.image ?? null,
       } as any;
 
-      // Extras fuera del tipado estricto:
       (session.user as any).boleta  = token.boleta;
       (session.user as any).nombre  = token.nombre;
       (session.user as any).carrera = token.carrera;
-
       return session;
     },
   },
 };
-
-const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
