@@ -4,7 +4,7 @@ import { isAuthorized } from "@/libs/isAuthorized"; // o tu helper
 export async function getApiKeys() {
   const user = await isAuthorized();
   // 👇 Parche: forzamos any para evitar el error de tipos en build
-  // @ts-expect-error Prisma Client types may not include apiKey in this env
+  // @ts-ignore
   const res = await (prisma as any).apiKey.findMany({
     where: { userId: user?.id as string },
   });
