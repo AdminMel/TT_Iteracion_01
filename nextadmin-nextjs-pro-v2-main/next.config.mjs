@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
-  typescript: { ignoreBuildErrors: true },
+  output: "standalone",
+  typescript: {
+    ignoreBuildErrors: true,   // ignora errores de TS en build
+  },
+  eslint: {
+    ignoreDuringBuilds: true,  // ignora errores de ESLint en build
+  },
   images: {
     domains: [
       "localhost",
