@@ -51,3 +51,17 @@ export async function searchUser(email: string) {
   if (!e) return null;
   return await prisma.user.findUnique({ where: { email: e } });
 }
+
+export async function resetUserPassword(email: string, resetToken: string, passwordResetTokenExp: Date) {
+  return await prisma.user.update({
+    where: {
+      email: email.toLowerCase(),
+    },
+    data: {
+      // Prisma no reconoce estos campos, los casteamos como any
+      ...(resetToken ? ({ passwordResetToken: resetToken } as any) : {}),
+      ...(passwordResetTokenExp ? ({ passwordResetTokenExp } as any) : {}),
+    },
+  });
+}
+
