@@ -1,6 +1,6 @@
 import "server-only";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // Asegúrate de exportar tus NextAuthOptions desde aquí
+import { authOptions } from "@/lib/auth"; // Asegúrate de exportar tus NextAuthOptions desde aquí
 
 /** Devuelve { id } del usuario autenticado o null si no hay sesión */
 export async function isAuthorized() {
