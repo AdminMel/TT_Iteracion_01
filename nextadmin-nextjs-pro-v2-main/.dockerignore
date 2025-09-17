@@ -1,0 +1,15 @@
+# dependencias y builds locales
+node_modules
+.next
+out
+dist
+
+# SO / IDE
+.DS_Store
+*.log
+.git
+.gitignore
+
+# envs (define tus variables en Render)
+.env
+.env.*
