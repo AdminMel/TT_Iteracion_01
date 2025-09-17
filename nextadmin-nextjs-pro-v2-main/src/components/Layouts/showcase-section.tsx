@@ -1,32 +1,32 @@
-"use client";
+'use client';
+import React from 'react';
 
-import { usePathname } from "next/navigation";
-import { Sidebar } from "@/components/Layouts/sidebar";
-import { Header } from "@/components/Layouts/header";
+type Props = React.PropsWithChildren<{
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
+  description?: React.ReactNode;
+  className?: string;
+}>;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const hideLayout = pathname === "/auth/signin";
+/**
+ * Shim de ShowcaseSection para satisfacer importaciones del template.
+ * Si ya tienes un componente real en otra ruta, puedes re-exportarlo aquí.
+ */
+// Si existiera la versión real en otra ruta, descomenta y ajusta:
+// export { ShowcaseSection as default, ShowcaseSection } from '../layouts/showcase-section';
 
+export function ShowcaseSection({ title, subtitle, description, className, children }: Props) {
   return (
-    <html lang="en">
-    <body className="min-h-screen bg-gray-50 dark:bg-gray-dark">
-    {hideLayout ? (
-      // Layout limpio
-      <div className="flex min-h-screen items-center justify-center">
-        {children}
-      </div>
-    ) : (
-      // Layout con sidebar + header
-      <div className="flex">
-        <Sidebar />
-        <div className="flex-1">
-          <Header />
-          <main>{children}</main>
-        </div>
-      </div>
-    )}
-    </body>
-    </html>
+    <section className={className}>
+      {(title || subtitle || description) && (
+        <header className="mb-6 space-y-1">
+          {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+          {title && <h2 className="text-xl font-semibold">{title}</h2>}
+          {description && <p className="text-muted-foreground">{description}</p>}
+        </header>
+      )}
+      {children}
+    </section>
   );
 }
+export default ShowcaseSection;
