@@ -1,5 +1,5 @@
 import prisma from "@/libs/prismaDb";
-import { isAuthorized } from "@/lib/authz"; // o tu helper
+import { isAuthorized } from "@/libs/isAuthorized"; // o tu helper
 
 export async function getApiKeys() {
   const user = await isAuthorized();
