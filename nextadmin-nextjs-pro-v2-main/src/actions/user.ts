@@ -32,10 +32,15 @@ export async function updateUser(data: any) {
   const email = String(data?.email ?? "").toLowerCase();
   if (!email) throw new Error("Email requerido");
 
-  return await prisma.user.update({
-    where: { email },
-    data: { ...data, email },
-  });
+  await prisma.user.update({
+  where: { email: email.toLowerCase() },
+  // 👇 casteamos 'data' a any para que TS no se queje; no cambia tu BD
+  data: ({ 
+    passwordResetToken: resetToken, 
+    passwordResetTokenExp 
+  } as any),
+});
+
 }
 
 export async function deleteUser(user: any) {
@@ -51,17 +56,3 @@ export async function searchUser(email: string) {
   if (!e) return null;
   return await prisma.user.findUnique({ where: { email: e } });
 }
-
-export async function resetUserPassword(email: string, resetToken: string, passwordResetTokenExp: Date) {
-  return await prisma.user.update({
-    where: {
-      email: email.toLowerCase(),
-    },
-    data: {
-      // Prisma no reconoce estos campos, los casteamos como any
-      ...(resetToken ? ({ passwordResetToken: resetToken } as any) : {}),
-      ...(passwordResetTokenExp ? ({ passwordResetTokenExp } as any) : {}),
-    },
-  });
-}
-
