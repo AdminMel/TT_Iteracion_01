@@ -1,28 +1,26 @@
 import prisma from "@/libs/prismaDb";
-import { isAuthorized } from "@/libs/isAuthorized"; // o tu helper
+import { isAuthorized } from "@/libs/isAuthorized";
+
+type ApiKeyClient = {
+  findMany: (args: any) => Promise<any[]>;
+  create: (args: any) => Promise<any>;
+  delete: (args: any) => Promise<any>;
+};
+
+const apiKey = (prisma as unknown as { apiKey: ApiKeyClient }).apiKey;
 
 export async function getApiKeys() {
   const user = await isAuthorized();
-  // 👇 Parche: forzamos any para evitar el error de tipos en build
-  // @ts-ignore — prisma typing puede no incluir apiKey en este entorno de build
-  const res = await (prisma as any).apiKey.findMany({
-    where: { userId: user?.id as string },
-  });
-  return res;
+  return await apiKey.findMany({ where: { userId: user?.id as string } });
 }
 
 export async function createApiKey(name?: string) {
   const user = await isAuthorized();
   const key = crypto.randomUUID();
-  // @ts-ignore — ver nota arriba
-  const created = await (prisma as any).apiKey.create({
-    data: { userId: user?.id as string, key, name },
-  });
-  return created;
+  return await apiKey.create({ data: { userId: user?.id as string, key, name } });
 }
 
 export async function deleteApiKey(id: string) {
-  // @ts-ignore — ver nota arriba
-  await (prisma as any).apiKey.delete({ where: { id } });
+  await apiKey.delete({ where: { id } });
   return { ok: true };
 }
