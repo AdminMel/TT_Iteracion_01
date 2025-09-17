@@ -1,57 +1,57 @@
 "use server";
-import { prisma } from "@/libs/prismaDb";
+import prisma from "@/libs/prismaDb";           // usa import default (como en otros archivos)
 import { isAuthorized } from "@/libs/isAuthorized";
 
-export async function getUsers(filter: any) {
+export async function getUsers(filter?: string) {
   const currentUser = await isAuthorized();
 
-  const res = await prisma.user.findMany({
-    where: {
-      role: filter,
-    },
-  });
+  // Si hay filtro, buscamos usuarios que tengan al menos un rol que coincida.
+  // Ajusta 'name' o 'role' según tu modelo UserRole.
+  const where: any = filter
+    ? {
+        roles: {
+          some: {
+            OR: [
+              { name: filter }, // si tu tabla de roles tiene 'name'
+              { role: filter }, // o si usa 'role' (enum/string)
+            ],
+          },
+        },
+      }
+    : {};
 
-  const filtredUsers = res.filter(
+  const res = await prisma.user.findMany({ where });
+
+  const filteredUsers = res.filter(
     (user) =>
-      user.email !== currentUser?.email && !user.email?.includes("demo-"),
+      user.email &&
+      user.email !== (currentUser?.email ?? "") &&
+      !user.email.includes("demo-"),
   );
 
-  return filtredUsers;
+  return filteredUsers;
 }
 
 export async function updateUser(data: any) {
-  const { email } = data;
+  const email = String(data?.email ?? "").toLowerCase();
+  if (!email) throw new Error("Email requerido");
+
   return await prisma.user.update({
-    where: {
-      email: email.toLowerCase(),
-    },
-    data: {
-      email: email.toLowerCase(),
-      ...data,
-    },
+    where: { email },
+    data: { ...data, email },
   });
 }
 
 export async function deleteUser(user: any) {
-  if (user?.email?.includes("demo-")) {
-    return new Error("Can't delete demo user");
-  }
+  const email = String(user?.email ?? "").toLowerCase();
+  if (!email) throw new Error("User not found");
+  if (email.includes("demo-")) return new Error("Can't delete demo user");
 
-  if (!user) {
-    return new Error("User not found");
-  }
-
-  return await prisma.user.delete({
-    where: {
-      email: user?.email.toLowerCase() as string,
-    },
-  });
+  return await prisma.user.delete({ where: { email } });
 }
 
-export async function serchUser(email: string) {
-  return await prisma.user.findUnique({
-    where: {
-      email: email.toLowerCase(),
-    },
-  });
+export async function searchUser(email: string) {
+  const e = String(email ?? "").toLowerCase();
+  if (!e) return null;
+  return await prisma.user.findUnique({ where: { email: e } });
 }
