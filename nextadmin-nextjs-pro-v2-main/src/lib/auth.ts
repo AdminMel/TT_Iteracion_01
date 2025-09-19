@@ -64,6 +64,16 @@ export const authOptions: NextAuthOptions = {
         select: { id: true },
       });
 
+      async redirect({ url, baseUrl }) {
+      // respeta callbackUrl relativas y mismo origen; por defecto al home
+      if (url.startsWith("/")) return baseUrl + url;
+      try {
+        const u = new URL(url);
+        if (u.origin === baseUrl) return url;
+      } catch {}
+      return baseUrl + "/";
+    },
+
       await prisma.perfilAlumno.upsert({
         where:  { userId: upUser.id },
         update: { boleta },
