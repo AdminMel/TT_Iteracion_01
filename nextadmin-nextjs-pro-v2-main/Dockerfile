@@ -1,16 +1,31 @@
-# ===== Build stage =====
-FROM eclipse-temurin:17-jdk AS build
+# --- build ---
+FROM node:20-alpine AS build
 WORKDIR /app
+COPY package*.json ./
+RUN npm ci
 COPY . .
-# Ensure wrapper is executable (Windows repos may lose +x)
-RUN if [ -f mvnw ]; then chmod +x mvnw; fi &&     ./mvnw -DskipTests package
+# Si usas Prisma, evita migraciones en build; solo genera cliente
+RUN npx prisma generate || true
+RUN npm run build
 
-# ===== Runtime stage =====
-FROM eclipse-temurin:17-jre
+# --- run ---
+FROM node:20-alpine AS runner
 WORKDIR /app
-# Copy the fat jar produced by Spring Boot
-COPY --from=build /app/target/*.jar app.jar
-# Render sets $PORT; pass it to Spring
-ENV PORT=8080
-EXPOSE 8080
-CMD ["java","-Dserver.port=${PORT}","-jar","/app/app.jar"]
+ENV NODE_ENV=production
+
+# Copia lo mínimo para standalone
+COPY --from=build /app/public ./public
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/prisma ./prisma
+
+# Render necesita que el server escuche en 0.0.0.0:$PORT (default 10000)
+ENV HOSTNAME=0.0.0.0
+ENV PORT=10000
+EXPOSE 10000
+
+# Aumenta timeouts (evita 502 por “connection reset”)
+ENV NEXT_HTTP_SERVER_KEEP_ALIVE_TIMEOUT=120000
+ENV NEXT_HTTP_SERVER_HEADERS_TIMEOUT=120000
+
+CMD ["node", "server.js"]
