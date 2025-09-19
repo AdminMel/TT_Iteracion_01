@@ -46,6 +46,7 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
   providers: [credentialsProvider],
   pages: { signIn: "/auth/signin" },
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   callbacks: {
     async signIn({ user }) {
       const boleta  = (user as any).boleta as string | undefined;
