@@ -35,6 +35,7 @@ const credentialsProvider = Credentials({
 }) as any;
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   debug: isDev,
   logger: isDev
     ? {
@@ -44,9 +45,8 @@ export const authOptions: NextAuthOptions = {
       }
     : undefined,
   session: { strategy: "jwt" },
-  providers: [credentialsProvider],
   pages: { signIn: "/auth/signin" },
-  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
+  providers: [credentialsProvider],
   callbacks: {
     async signIn({ user }) {
       const boleta  = (user as any).boleta as string | undefined;
@@ -64,16 +64,6 @@ export const authOptions: NextAuthOptions = {
         select: { id: true },
       });
 
-      async redirect({ url, baseUrl }) {
-      // respeta callbackUrl relativas y mismo origen; por defecto al home
-      if (url.startsWith("/")) return baseUrl + url;
-      try {
-        const u = new URL(url);
-        if (u.origin === baseUrl) return url;
-      } catch {}
-      return baseUrl + "/";
-    },
-
       await prisma.perfilAlumno.upsert({
         where:  { userId: upUser.id },
         update: { boleta },
@@ -82,6 +72,16 @@ export const authOptions: NextAuthOptions = {
 
       (user as any).__dbId = upUser.id;
       return true;
+    },
+
+    async redirect({ url, baseUrl }) {
+      // respeta callbackUrl relativas y mismo origen; default al home
+      if (url.startsWith("/")) return baseUrl + url;
+      try {
+        const u = new URL(url);
+        if (u.origin === baseUrl) return url;
+      } catch {}
+      return baseUrl + "/";
     },
 
     async jwt({ token, user }) {
