@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: springboot-on-render
-    env: docker
-    plan: free
-    rootDir: .
-    autoDeploy: true
-    healthCheckPath: /
