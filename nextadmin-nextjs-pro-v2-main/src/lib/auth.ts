@@ -3,10 +3,9 @@ import type { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import prisma from "@/libs/prismaDb";
 import { gescoLogin } from "@/lib/gescoLogin";
-export { authOptions };
+
 const isDev = process.env.NODE_ENV !== "production";
-const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+
 const credentialsProvider = Credentials({
   id: "credentials",
   name: "GESCO",
@@ -39,10 +38,10 @@ export const authOptions: NextAuthOptions = {
   debug: isDev,
   logger: isDev
     ? {
-      error: (...m) => console.error("[NextAuth][error]", ...m),
-      warn:  (...m) => console.warn("[NextAuth][warn]", ...m),
-      debug: (...m) => console.log("[NextAuth][debug]", ...m),
-    }
+        error: (...m) => console.error("[NextAuth][error]", ...m),
+        warn:  (...m) => console.warn("[NextAuth][warn]", ...m),
+        debug: (...m) => console.log("[NextAuth][debug]", ...m),
+      }
     : undefined,
   session: { strategy: "jwt" },
   providers: [credentialsProvider],
@@ -100,9 +99,9 @@ export const authOptions: NextAuthOptions = {
         image: session.user?.image ?? null,
       } as any;
 
-      (session.user as any).boleta  = token.boleta;
-      (session.user as any).nombre  = token.nombre;
-      (session.user as any).carrera = token.carrera;
+      (session.user as any).boleta  = (token as any).boleta;
+      (session.user as any).nombre  = (token as any).nombre;
+      (session.user as any).carrera = (token as any).carrera;
       return session;
     },
   },
