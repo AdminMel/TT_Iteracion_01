@@ -17,6 +17,8 @@ type PropsType = {
   }>;
 };
 
+export const dynamic = "force-static";
+
 export default async function Home({ searchParams }: PropsType) {
   await structuredAlgoliaHtmlData({
     pageUrl: process.env.SITE_URL,
