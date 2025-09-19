@@ -3,9 +3,10 @@ import type { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import prisma from "@/libs/prismaDb";
 import { gescoLogin } from "@/lib/gescoLogin";
-
+export { authOptions };
 const isDev = process.env.NODE_ENV !== "production";
-
+const handler = NextAuth(authOptions);
+export { handler as GET, handler as POST };
 const credentialsProvider = Credentials({
   id: "credentials",
   name: "GESCO",
