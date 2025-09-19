@@ -10,6 +10,9 @@ RUN npx prisma generate && npm run build
 FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
+# Render inyecta PORT (ej. 10000)
+ENV PORT=3000
 COPY --from=build /app ./
 EXPOSE 3000
-CMD ["npm","run","start","--","-p","${PORT:3000}"]
+# Importante: NO añadimos -p aquí, lo hace el script start
+CMD ["npm","run","start"]
