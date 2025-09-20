@@ -1,10 +1,12 @@
 // src/lib/auth.ts
 import type { NextAuthOptions } from "next-auth";
+import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import prisma from "@/libs/prismaDb";
 import { gescoLogin } from "@/lib/gescoLogin";
 
 const isDev = process.env.NODE_ENV !== "production";
+const AUTH_SECRET = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
 
 const credentialsProvider = Credentials({
   id: "credentials",
@@ -35,7 +37,9 @@ const credentialsProvider = Credentials({
 }) as any;
 
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
+  secret: AUTH_SECRET,
+  // Si usas v5 de Auth.js, el flag también se puede inferir vía AUTH_TRUST_HOST
+  // trustHost: true, // opcional: puedes dejarlo a cargo del env var
   debug: isDev,
   logger: isDev
     ? {
@@ -75,7 +79,7 @@ export const authOptions: NextAuthOptions = {
     },
 
     async redirect({ url, baseUrl }) {
-      // respeta callbackUrl relativas y mismo origen; default al home
+      // respeta callbackUrl relativas y mismo origen; por defecto al home
       if (url.startsWith("/")) return baseUrl + url;
       try {
         const u = new URL(url);
@@ -117,3 +121,5 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+// (handler en su propio archivo api)
