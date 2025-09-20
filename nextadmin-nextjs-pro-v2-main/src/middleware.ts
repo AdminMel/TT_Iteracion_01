@@ -1,39 +1,36 @@
-import type { NextRequest } from "next/server";
+// src/middleware.ts
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const PUBLIC = [
-  "/",
-  "/auth/signin",
-  "/api/health",
-  "/favicon.ico",
-  "/robots.txt",
-];
+const AUTH_SECRET = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
 
 export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+  const { pathname, search } = req.nextUrl;
 
-  // deja pasar _next, assets y rutas públicas
+  // Permitir estáticos, next internals, API y auth
   if (
     pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/auth") ||
+    pathname === "/favicon.ico" ||
     pathname.startsWith("/public") ||
-    pathname.startsWith("/images") ||
-    pathname.startsWith("/api/health") ||
-    pathname.startsWith("/api/auth") || // <- muy importante
-    PUBLIC.some(p => pathname === p || pathname.startsWith(p))
+    pathname.startsWith("/auth/signin") ||
+    pathname.startsWith("/auth/callback")
   ) {
     return NextResponse.next();
   }
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({ req, secret: AUTH_SECRET });
+
   if (!token) {
-    const url = new URL("/auth/signin", req.url);
-    url.searchParams.set("callbackUrl", req.nextUrl.pathname + req.nextUrl.search);
-    return NextResponse.redirect(url);
+    const signInUrl = new URL("/auth/signin", req.url);
+    signInUrl.searchParams.set("callbackUrl", pathname + search);
+    return NextResponse.redirect(signInUrl);
   }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!_next|static).*)"],
+  matcher: ["/((?!_next|api/auth|favicon.ico|auth/signin|auth/callback|public).*)"],
 };
