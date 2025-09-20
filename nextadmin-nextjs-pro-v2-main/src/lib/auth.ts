@@ -18,34 +18,61 @@ const credentialsProvider = Credentials({
     const password = credentials?.password ?? "";
     if (!username || !password) throw new Error("Faltan credenciales");
 
-    const r = await gescoLogin(username, password);
-    if (!r.ok) return null;
+    // BYPASS de prueba — activa AUTH_BYPASS=1 en Render y prueba una vez
+    if (process.env.AUTH_BYPASS === "1") {
+      console.warn("[AUTH] BYPASS activo — aceptando cualquier credencial");
+      return {
+        id: username,
+        name: username,
+        email: `${username}@placeholder.local`,
+        boleta: username,
+        nombre: username,
+        carrera: "TEST",
+        accessToken: "bypass",
+      };
+    }
 
-    const u = r.user!;
-    return {
-      id: String(u.boleta || username),
-      name: u.nombre ?? null,
-      email: u.email ?? null,
-      boleta: u.boleta,
-      nombre: u.nombre,
-      carrera: u.carrera,
-      accessToken: u.token,
-    } as any;
+    try {
+      const r = await gescoLogin(username, password).catch((e: any) => {
+        console.error("[AUTH] gescoLogin lanzó:", e);
+        return { ok: false, error: String(e) };
+      });
+
+      if (!r?.ok) {
+        console.warn("[AUTH] gescoLogin NOT OK:", r?.error ?? "(sin detalle)");
+        return null; // ⟶ NextAuth responde 401 (CredentialsSignin)
+      }
+
+      const u = r.user!;
+      return {
+        id: String(u.boleta || username),
+        name: u.nombre ?? null,
+        email: u.email ?? null,
+        boleta: u.boleta,
+        nombre: u.nombre,
+        carrera: u.carrera,
+        accessToken: u.token,
+      } as any;
+    } catch (e: any) {
+      console.error("[AUTH] Error inesperado en authorize:", e);
+      throw new Error("Error de autenticación");
+    }
   },
 }) as any;
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   debug: isDev,
   logger: isDev
     ? {
-      error: (...m) => console.error("[NextAuth][error]", ...m),
-      warn:  (...m) => console.warn("[NextAuth][warn]", ...m),
-      debug: (...m) => console.log("[NextAuth][debug]", ...m),
-    }
+        error: (...m) => console.error("[NextAuth][error]", ...m),
+        warn:  (...m) => console.warn("[NextAuth][warn]", ...m),
+        debug: (...m) => console.log("[NextAuth][debug]", ...m),
+      }
     : undefined,
   session: { strategy: "jwt" },
-  providers: [credentialsProvider],
   pages: { signIn: "/auth/signin" },
+  providers: [credentialsProvider],
   callbacks: {
     async signIn({ user }) {
       const boleta  = (user as any).boleta as string | undefined;
@@ -71,6 +98,15 @@ export const authOptions: NextAuthOptions = {
 
       (user as any).__dbId = upUser.id;
       return true;
+    },
+
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return baseUrl + url;
+      try {
+        const u = new URL(url);
+        if (u.origin === baseUrl) return url;
+      } catch {}
+      return baseUrl + "/";
     },
 
     async jwt({ token, user }) {
@@ -99,9 +135,9 @@ export const authOptions: NextAuthOptions = {
         image: session.user?.image ?? null,
       } as any;
 
-      (session.user as any).boleta  = token.boleta;
-      (session.user as any).nombre  = token.nombre;
-      (session.user as any).carrera = token.carrera;
+      (session.user as any).boleta  = (token as any).boleta;
+      (session.user as any).nombre  = (token as any).nombre;
+      (session.user as any).carrera = (token as any).carrera;
       return session;
     },
   },
