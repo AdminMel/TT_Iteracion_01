@@ -6,19 +6,25 @@ import { getToken } from "next-auth/jwt";
 const AUTH_SECRET = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
 
 const PUBLIC_PATHS = new Set([
+  "/",
   "/auth/signin",
   "/api/health",
   "/favicon.ico",
+  "/icon.svg",
+  "/apple-touch-icon.png",
+  "/site.webmanifest",
+  "/manifest.webmanifest",
   "/robots.txt",
+  "/sitemap.xml",
 ]);
 
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
-  // deja pasar estáticos/next internals/auth
+  // deja pasar internals/static/auth y públicos
   if (
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/public") ||
+    pathname.startsWith("/static") ||
     pathname.startsWith("/images") ||
     pathname.startsWith("/api/auth") ||
     PUBLIC_PATHS.has(pathname)
@@ -29,7 +35,7 @@ export async function middleware(req: NextRequest) {
   if (!token) {
     const signInUrl = new URL("/auth/signin", req.url);
     const requested = pathname + (search || "");
-    const cb = requested.startsWith("/auth/") ? "/" : requested; // evita loop
+    const cb = requested.startsWith("/auth/") ? "/" : requested; // evita loops
     signInUrl.searchParams.set("callbackUrl", cb);
     return NextResponse.redirect(signInUrl);
   }
